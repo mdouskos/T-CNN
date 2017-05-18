@@ -42,6 +42,9 @@ if __name__ == '__main__':
     for ind, img_path in enumerate(images[:-1]):
         img1 = img2
         img2 = cvReadGrayImg(images[ind+1])
+        basename = os.path.splitext(os.path.basename(img_path))[0]
+        if os.path.isfile(os.path.join(args.save_dir, basename)+'.png'):
+            continue
         h, w = img1.shape
         fxy = norm_width / w
         # normalize image size
@@ -80,9 +83,8 @@ if __name__ == '__main__':
                 break
 
     # duplicate last frame
-    basename = os.path.splitext(os.path.basename(images[-1]))[0]
-    saveOptFlowToImage(flow, os.path.join(args.save_dir, basename), args.merge)
+    if 'flow' in locals():
+        basename = os.path.splitext(os.path.basename(images[-1]))[0]
+        saveOptFlowToImage(flow, os.path.join(args.save_dir, basename), args.merge)
     toc = time.time()
     print "{:.2f} min, {:.2f} fps".format((toc-tic) / 60., 1. * len(images) / (toc - tic))
-
-

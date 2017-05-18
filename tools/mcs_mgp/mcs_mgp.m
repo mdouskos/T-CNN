@@ -1,8 +1,12 @@
-function mcs_mgp(flow_root, score_root, output_root)
+function mcs_mgp(flow_root, score_root, output_root, num_class)
 %% propagating still-image detection according to optical flows
 % suppressing low-confidence classes accoridng to context info
 %
 % First written by Hongsheng Li. Refactored by Kai Kang.
+
+if nargin < 4
+    num_class=20;
+end
 
 % parameters
 temporal_window_size = 7;
@@ -27,7 +31,7 @@ n_video = length(video_name);
 
 for video_idx = 1:n_video
     %% optical flow
-    if ~isdir(fullfile(score_root, video_name(video_idx).name))
+    if ~isdir(fullfile(score_root, video_name(video_idx).name)) || exist(fullfile(output_root, video_name(video_idx).name),'dir')
         continue;
     end
     frame_name = dir(fullfile(score_root, video_name(video_idx).name, '*.mat'));
@@ -35,7 +39,7 @@ for video_idx = 1:n_video
     fprintf('%d of %d total videos, name: %s.',...
         video_idx, n_video, video_name(video_idx).name);
 
-    frame = struct('boxes',[],'zs',[]);
+    frame = struct('boxes',[],'data',[],'zs',[]);
     frame(n_frame).boxes = [];
     neighbor_frame = frame;
 
@@ -45,12 +49,12 @@ for video_idx = 1:n_video
         dot_pos = findstr(frame_name(frame_idx).name, '.');
         dot_pos = dot_pos(1);
         optflow_name = fullfile(flow_root, video_name(video_idx).name, [frame_name(frame_idx).name(1:dot_pos-1) '.png']);
-
+	
         frame(frame_idx) = load(file_name);
         if isempty(frame(frame_idx).boxes)
             continue;
             frame(frame_idx).boxes = zeros(0,4);
-            frame(frame_idx).zs = zeros(0,30);
+            frame(frame_idx).zs = zeros(0,num_class);
         end
         optflow = imread(optflow_name);
         x_map = single(optflow(:,:,1)) / 255 * 30 - 15;
@@ -83,7 +87,7 @@ for video_idx = 1:n_video
     %% context
     all_zs = cat(1, frame(1:end).zs);
     n_box = size(all_zs,1);
-    all_class_idx = repmat(1:30,n_box,1);
+    all_class_idx = repmat(1:num_class,n_box,1);
     all_zs = all_zs(:);
     all_class_idx = all_class_idx(:);
     [sorted_all_zs,sort_idx] = sort(all_zs, 'descend');
